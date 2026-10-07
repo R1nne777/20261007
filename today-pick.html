@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>오늘 픽 - 오늘 뭐 먹지?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EFF7; --surface:#FFFFFF; --ink:#14213D; --muted:#56637E; --line:#CFD8E6; --chip:#DCE5F2;
+  --red:#D8321F; --yellow:#FFC93C; --on-yellow:#14213D; --focus:#2F6BFF;
+  --ticket:#FFF1B8; --ticket-ink:#14213D;
+  --display:"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1626; --surface:#18233A; --ink:#EAF0FB; --muted:#9DAAC4; --line:#2B3956; --chip:#223250;
+    --red:#E5412F; --focus:#8FB0FF; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1626; --surface:#18233A; --ink:#EAF0FB; --muted:#9DAAC4; --line:#2B3956; --chip:#223250;
+  --red:#E5412F; --focus:#8FB0FF; color-scheme:dark;
+}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 var(--body);-webkit-tap-highlight-color:transparent}
+button,input{font-family:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+#app{height:100%;max-width:460px;margin:0 auto;display:flex;flex-direction:column;position:relative;background:var(--bg)}
+@media (min-width:500px){#app{border-left:2px solid var(--line);border-right:2px solid var(--line)}}
+
+.bar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px 4px}
+.logo{display:flex;align-items:center;gap:6px;font-family:var(--display);font-size:24px;line-height:1}
+.logo .mark{background:var(--red);color:#fff;border-radius:8px;padding:4px 8px 3px;transform:rotate(-4deg);display:inline-block}
+.today{font-size:13px;color:var(--muted);font-weight:500}
+
+main{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:6px 18px 28px}
+
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 10px;background:var(--surface);border-top:2px solid var(--line)}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:54px;border:0;border-radius:12px;background:transparent;color:var(--muted);font-size:12px;font-weight:700}
+.tab .ti{font-size:22px;line-height:1}
+.tab[aria-current="page"]{background:var(--yellow);color:var(--on-yellow)}
+
+.h1{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.25;margin:14px 0 6px}
+.h2{font-family:var(--display);font-weight:400;font-size:20px;line-height:1.3;margin:0 0 10px}
+.sub{margin:0;color:var(--muted)}
+.lab{font-weight:800;font-size:15px;margin:20px 0 8px}
+.note{color:var(--muted);font-size:13px;line-height:1.55;margin:18px 0 0}
+
+.prog{display:flex;gap:6px;margin-top:8px}
+.prog i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.prog i.on{background:var(--ink)}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.grid .tile:last-child:nth-child(odd){grid-column:span 2}
+.tile{display:flex;align-items:center;gap:10px;min-height:60px;padding:12px 14px;border:2px solid var(--line);border-radius:14px;background:var(--surface);font-weight:700;font-size:16px;text-align:left}
+.tile .te{font-size:26px;line-height:1}
+.tile[aria-pressed="true"],.chip[aria-pressed="true"]{background:var(--yellow);color:var(--on-yellow);border-color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:42px;padding:0 14px;border:2px solid var(--line);border-radius:999px;background:var(--surface);font-weight:700;font-size:15px}
+
+.btn{display:block;width:100%;min-height:56px;padding:0 20px;border-radius:14px;border:2px solid var(--ink);background:var(--surface);font-weight:800;font-size:18px}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.45;cursor:default}
+.stack{display:grid;gap:10px;margin-top:18px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.link{background:none;border:0;font-weight:700;font-size:14px;text-decoration:underline;padding:8px 4px;min-height:36px;color:var(--ink)}
+.link.muted{color:var(--muted)}
+
+.panel{background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:16px;margin-top:16px}
+
+/* ticket */
+.ticket{position:relative;background:var(--ticket);color:var(--ticket-ink);border-radius:18px;padding:16px 20px 20px;margin-top:10px}
+.t-head{display:flex;justify-content:space-between;font-size:13px;font-weight:700;opacity:.7}
+.t-emoji{font-size:68px;line-height:1;margin-top:14px}
+.t-name{font-family:var(--display);font-weight:400;font-size:38px;line-height:1.15;margin:8px 0 10px}
+.t-tags{display:flex;flex-wrap:wrap;gap:6px}
+.t-tag{border:1.5px solid rgba(20,33,61,.4);border-radius:999px;padding:2px 10px;font-size:13px;font-weight:700}
+.t-why{display:flex;flex-wrap:wrap;gap:4px 12px;margin:12px 0 0;padding:0;list-style:none}
+.t-why li{font-size:14px;font-weight:700}
+.t-why li::before{content:"✓ ";color:#217A4D}
+.perf{position:relative;margin:18px -20px;border-top:2px dashed rgba(20,33,61,.3)}
+.perf::before,.perf::after{content:"";position:absolute;top:-12px;width:22px;height:22px;border-radius:50%;background:var(--bg)}
+.perf::before{left:-11px}.perf::after{right:-11px}
+.culture h3{font-size:15px;font-weight:800;margin:0 0 4px}
+.culture p{margin:0;font-size:15px;line-height:1.65}
+.culture .t-region{margin-top:8px;font-weight:700;font-size:14px}
+.t-stamp{position:absolute;right:20px;top:46px;width:88px;height:88px;border-radius:50%;border:3px solid #C42A19;display:grid;place-items:center;text-align:center;font-family:var(--display);font-size:19px;line-height:1.1;color:#C42A19;box-shadow:inset 0 0 0 3px var(--ticket),inset 0 0 0 5px #C42A19;transform:rotate(-14deg);mix-blend-mode:multiply;animation:stamp .38s cubic-bezier(.2,1.5,.4,1) .12s both}
+@keyframes stamp{from{opacity:0;transform:rotate(-30deg) scale(1.9)}to{opacity:1;transform:rotate(-14deg) scale(1)}}
+
+/* wheel */
+.wheel-wrap{position:relative;width:min(100%,320px);aspect-ratio:1;margin:22px auto 8px}
+.wheel-wrap svg{width:100%;height:100%;display:block}
+.pointer{position:absolute;left:50%;top:-14px;transform:translateX(-50%);width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;border-top:28px solid var(--red);z-index:2;filter:drop-shadow(0 2px 0 var(--ink))}
+.hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:78px;height:78px;border-radius:50%;background:var(--red);color:#fff;border:4px solid var(--ink);font-family:var(--display);font-size:21px;z-index:2}
+.hub:disabled{opacity:.7;cursor:default}
+
+/* stats */
+.bar-row{display:grid;grid-template-columns:92px 1fr 42px;gap:8px;align-items:center;font-size:14px;font-weight:700;margin-top:8px}
+.track{height:12px;border-radius:6px;background:var(--line);overflow:hidden}
+.fill{height:100%;background:var(--red);border-radius:6px}
+.pct{text-align:right;color:var(--muted)}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 6px;padding:0;list-style:none}
+.tags li{background:var(--yellow);color:var(--on-yellow);font-weight:800;font-size:14px;border-radius:8px;padding:4px 10px}
+
+.hlist{list-style:none;margin:0;padding:0}
+.hrow{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.hrow:last-child{border-bottom:0}
+.he{font-size:30px;line-height:1}
+.hbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.hbody b{font-size:16px}
+.hbody small{color:var(--muted);font-size:13px}
+.via{display:inline-block;margin-left:6px;padding:0 8px;border-radius:999px;background:var(--chip);font-size:12px;font-weight:700;color:var(--ink)}
+.hact{display:flex;flex-direction:column;align-items:flex-end}
+
+/* together */
+.stepper{display:flex;justify-content:space-between;align-items:center;font-weight:800}
+.step-ctl{display:flex;align-items:center;gap:14px;font-size:18px}
+.round{width:44px;height:44px;border-radius:50%;border:2px solid var(--ink);background:var(--surface);font-size:22px;font-weight:800;line-height:1}
+.round:disabled{opacity:.35;cursor:default}
+.names{display:grid;gap:8px;margin-top:14px}
+.name{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;color:var(--muted)}
+.name span{width:34px}
+.name input{flex:1;min-height:44px;border:2px solid var(--line);border-radius:12px;padding:0 12px;background:var(--bg);font-size:16px;font-weight:700;color:var(--ink)}
+.sat-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.sat{padding:4px 12px;border-radius:999px;border:2px solid var(--line);font-size:14px;font-weight:700;color:var(--muted)}
+.sat.ok{background:var(--surface);border-color:#217A4D;color:var(--ink)}
+
+/* sheet & toast */
+.overlay{position:fixed;inset:0;background:rgba(10,16,30,.55);display:flex;align-items:flex-end;justify-content:center;z-index:50}
+.sheet{width:100%;max-width:460px;max-height:82%;display:flex;flex-direction:column;background:var(--surface);border-radius:22px 22px 0 0;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px))}
+.sh-head{display:flex;justify-content:space-between;align-items:center;font-family:var(--display);font-size:20px}
+.search{width:100%;min-height:46px;margin:10px 0;border:2px solid var(--line);border-radius:12px;padding:0 12px;font-size:16px;background:var(--bg)}
+.sh-list{list-style:none;margin:0;padding:0;overflow-y:auto}
+.sh-list li[hidden]{display:none}
+.sh-item{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;font-size:16px;font-weight:700}
+.sh-item span:first-child{font-size:24px}
+.sh-item small{margin-left:auto;color:var(--muted);font-weight:500}
+.toast{position:absolute;left:50%;bottom:86px;transform:translateX(-50%) translateY(8px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;white-space:nowrap;z-index:60}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.empty{text-align:center;padding:10px 0 4px;color:var(--muted)}
+.empty .big{font-size:40px;line-height:1}
+
+@media (prefers-reduced-motion:reduce){
+  .t-stamp{animation:none}
+  .toast{transition:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="bar">
+    <div class="logo" aria-label="오늘 픽"><span>오늘</span><span class="mark">픽</span></div>
+    <div class="today" id="today"></div>
+  </header>
+  <main id="main"></main>
+  <nav class="tabs" aria-label="주요 메뉴">
+    <button class="tab" data-a="tab" data-id="pick"><span class="ti" aria-hidden="true">🍽️</span>추천</button>
+    <button class="tab" data-a="tab" data-id="wheel"><span class="ti" aria-hidden="true">🎡</span>룰렛</button>
+    <button class="tab" data-a="tab" data-id="together"><span class="ti" aria-hidden="true">👥</span>함께</button>
+    <button class="tab" data-a="tab" data-id="me"><span class="ti" aria-hidden="true">📒</span>내 픽</button>
+  </nav>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- 기본 데이터 ---------- */
+var MOODS=[
+  {id:'happy',label:'행복함',emoji:'😆'},
+  {id:'stress',label:'스트레스',emoji:'😤'},
+  {id:'blue',label:'우울함',emoji:'😔'},
+  {id:'tired',label:'피곤함',emoji:'😪'},
+  {id:'blank',label:'아무 생각 없음',emoji:'😶'}
+];
+var MOOD_WHY={happy:'기분 좋은 날에 어울려요',stress:'스트레스 풀기 좋아요',blue:'마음을 달래줘요',tired:'기운 보충에 좋아요',blank:'고민 없이 먹기 좋아요'};
+var TASTES=[
+  {id:'spicy',label:'매운맛',emoji:'🌶️'},
+  {id:'sweet',label:'달달한맛',emoji:'🍯'},
+  {id:'salty',label:'짭짤한맛',emoji:'🧂'},
+  {id:'mild',label:'담백한맛',emoji:'🍚'}
+];
+var SITS=[
+  {id:'full',label:'든든하게',emoji:'💪'},
+  {id:'light',label:'가볍게',emoji:'🍃'},
+  {id:'quick',label:'간단하게',emoji:'⚡'},
+  {id:'special',label:'특별하게',emoji:'✨'}
+];
+var BUDGETS=[{id:1,label:'1만원 이하'},{id:2,label:'2만원 이하'},{id:3,label:'상관없어요'}];
+var PRICE={1:'1만원 이하',2:'1~2만원',3:'2만원 이상'};
+var CATS=['한식','중식','일식','양식','세계요리','분식·간식'];
+var ALLERGENS=['땅콩','갑각류','생선','우유','달걀','밀','대두','메밀','돼지고기','소고기','닭고기'];
+
+function M(id,name,emoji,cat,kind,moods,tastes,sits,price,al,solo,region,culture){
+  return {id:id,name:name,emoji:emoji,cat:cat,kind:kind,
+    moods:moods.split(' ').filter(Boolean),tastes:tastes.split(' ').filter(Boolean),sits:sits.split(' ').filter(Boolean),
+    price:price,al:al.split(' ').filter(Boolean),solo:!!solo,region:region,culture:culture};
+}
+var MENU=[
+M('kimchijjigae','김치찌개','🍲','한식','국물요리','stress tired blue','spicy salty','full',1,'돼지고기 대두',1,'전국','잘 익어 신맛이 강해진 김치를 버리지 않고 끓여 먹던 데서 자리 잡은 대표 가정식이에요. 지금의 빨간 김치는 고추가 들어온 조선 시대 이후 널리 퍼졌어요.'),
+M('doenjang','된장찌개','🥘','한식','국물요리','blue tired blank','mild salty','full',1,'대두',1,'전국','된장은 콩을 발효해 만드는 장(醬) 문화의 중심이에요. 집집마다 장맛이 다르다는 말이 있을 만큼 집마다 개성이 담겨요.'),
+M('bibimbap','비빔밥','🍚','한식','밥류','happy tired blank','mild','full light',1,'달걀 대두 소고기',1,'전주','여러 나물과 밥을 한 그릇에 비벼 먹는 음식이에요. 전주비빔밥이 지역을 대표하는 음식으로 널리 알려져 있어요.'),
+M('jeyuk','제육볶음','🥢','한식','고기요리','stress tired','spicy sweet','full',1,'돼지고기 대두',1,'전국','‘제육’은 돼지고기를 뜻하는 말에서 왔다고 해요. 고추장 양념에 볶아 밥반찬으로도, 쌈으로도 즐겨 먹어요.'),
+M('bulgogi','불고기','🥩','한식','고기요리','happy tired','sweet salty','full special',2,'소고기 대두',1,'전국','얇게 저민 고기를 간장 양념에 재워 구워 먹는, 한국을 대표하는 고기 요리예요. 외국인에게도 널리 사랑받아요.'),
+M('samgyeopsal','삼겹살','🥓','한식','고기요리','happy stress','salty mild','special full',2,'돼지고기',0,'전국','한국에서 가장 대중적인 외식 고기 메뉴 중 하나예요. 상추와 마늘, 쌈장에 싸 먹는 쌈 문화와 함께 발달했어요.'),
+M('naengmyeon','냉면','🍜','한식','면류','stress happy blank','mild','light',2,'밀 메밀',1,'평양·함흥','평양냉면과 함흥냉면처럼 북쪽 지역에서 발달한 면 요리예요. 더운 여름뿐 아니라 겨울 별미로도 즐겼다고 전해져요.'),
+M('sundubu','순두부찌개','🍲','한식','국물요리','stress blue tired','spicy mild','full quick',1,'대두 달걀',1,'강릉 초당','간수를 넣어 굳히기 전의 몽글몽글한 두부로 끓인 찌개예요. 강릉 초당순두부가 특히 유명해요.'),
+M('samgyetang','삼계탕','🐔','한식','국물요리','tired blue','mild','full special',2,'닭고기',1,'전국','무더운 복날에 뜨거운 음식으로 더위를 이겨내는 ‘이열치열’ 보양식이에요.'),
+M('galbitang','갈비탕','🍖','한식','국물요리','tired blue','mild salty','full special',2,'소고기',1,'전국','소갈비를 오래 고아 맑게 끓인 국물 요리로, 보양식이자 손님 대접 음식으로 사랑받아 왔어요.'),
+M('kalguksu','칼국수','🍜','한식','면류','blue tired blank','mild salty','light full',1,'밀',1,'전국','밀가루 반죽을 칼로 썰어 만든 면이라 칼국수라고 불러요. 뜨끈한 국물이 생각나는 날의 단골 메뉴예요.'),
+M('gimbap','김밥','🍙','분식·간식','밥류','blank happy','mild salty','quick light',1,'달걀 대두',1,'전국','소풍과 나들이의 대표 도시락이에요. 밥과 여러 재료를 김에 말아 한입에 먹을 수 있어서 휴대하기 좋아요.'),
+M('gukbap','돼지국밥','🍲','한식','국물요리','tired blue stress','salty mild','full',1,'돼지고기',1,'부산','부산을 대표하는 향토 음식이에요. 돼지뼈를 오래 우린 뽀얀 국물에 밥을 말아 먹고, 한국전쟁 시기 피란민 음식에서 비롯됐다는 이야기가 전해져요.'),
+M('dakgalbi','닭갈비','🍗','한식','고기요리','stress happy','spicy sweet','full special',2,'닭고기 대두',0,'춘천','강원도 춘천을 대표하는 음식이에요. 매콤달콤한 양념에 볶고, 마지막엔 밥을 볶아 마무리하는 게 정석처럼 여겨져요.'),
+M('gamjatang','감자탕','🍖','한식','국물요리','stress tired','spicy salty','full',2,'돼지고기',0,'전국','돼지 등뼈를 푹 끓인 얼큰한 국물 요리예요. 이름의 ‘감자’가 채소 감자가 아니라 돼지 등뼈 부위를 뜻한다는 설도 있어요.'),
+M('budae','부대찌개','🍲','한식','국물요리','stress happy','spicy salty','full special',2,'밀 돼지고기 우유',0,'의정부','한국전쟁 이후 미군 부대 주변에서 구한 햄과 소시지를 넣어 끓이면서 시작됐다고 전해져요. 의정부가 대표 지역으로 꼽혀요.'),
+M('tteokbokki','떡볶이','🌶️','분식·간식','분식','stress happy blank','spicy sweet','quick light',1,'밀 대두',1,'전국','궁중에서는 간장 양념의 떡볶이를 즐겼고, 1950년대 이후 고추장 양념 떡볶이가 대중화됐다고 알려져 있어요.'),
+M('ramyeon','라면','🍜','분식·간식','면류','blank stress tired','spicy salty','quick',1,'밀 대두',1,'전국','한국 최초의 라면은 1963년 삼양식품이 출시했어요. 이후 한국인의 대표적인 간편식이 됐어요.'),
+M('chicken','치킨','🍗','한식','튀김·치킨','happy stress','salty spicy sweet','special full',2,'닭고기 밀',1,'전국','바삭한 튀김옷에 양념, 간장, 후라이드까지 맛이 다양한 한국식 치킨은 야식과 모임 메뉴의 대표 주자예요.'),
+M('jokbal','족발','🐷','한식','고기요리','happy stress','salty mild','special full',2,'돼지고기 대두',0,'전국','돼지 다리를 간장 양념에 푹 삶아 얇게 썰어 먹는 음식이에요. 야식과 모임 메뉴로 사랑받아요.'),
+M('jjimdak','안동찜닭','🍲','한식','고기요리','happy stress tired','sweet salty spicy','full special',2,'닭고기 대두 밀',0,'안동','경북 안동의 시장에서 시작된 음식으로 알려져 있어요. 간장 양념에 닭과 당면, 채소를 졸여 달콤짭짤해요.'),
+M('seolleongtang','설렁탕','🥣','한식','국물요리','tired blue','mild','full',2,'소고기',1,'전국','소뼈를 오래 고아 뽀얀 국물을 낸 음식이에요. 소금과 파를 취향대로 넣어 간을 맞춰 먹는 게 특징이에요.'),
+M('juk','죽','🥣','한식','밥류','blue tired','mild','light',1,'',1,'전국','쌀을 오래 끓여 부드럽게 만든 음식이에요. 몸이 힘들 때 가장 먼저 떠올리는 대표적인 회복식이에요.'),
+M('kimchibokkeum','김치볶음밥','🍳','한식','밥류','blank stress tired','spicy salty','quick full',1,'달걀 돼지고기',1,'전국','남은 김치와 밥만 있어도 만들 수 있는 집밥 메뉴예요. 계란프라이를 올리는 게 단골 조합이에요.'),
+M('kongguksu','콩국수','🥛','한식','면류','tired blank','mild','light',1,'대두 밀',1,'전국','갈아 만든 콩 국물에 국수를 말아 먹는 여름 별미예요. 소금으로 간하는 사람과 설탕을 넣는 사람으로 취향이 갈리는 걸로 유명해요.'),
+M('bibimguksu','비빔국수','🍜','한식','면류','stress happy blank','spicy sweet','light quick',1,'밀 대두 달걀',1,'전국','새콤달콤 매콤한 양념장에 국수를 비벼 먹는 음식이에요. 따뜻한 잔치국수와 짝을 이루는 대표 국수 메뉴예요.'),
+M('mandu','만두','🥟','분식·간식','분식','blank blue happy','salty mild','quick light',1,'밀 돼지고기 대두',1,'전국','밀가루 피에 소를 넣어 찌거나 굽거나 끓여 먹는 음식이에요. 명절 음식으로도 사랑받아요.'),
+M('makguksu','막국수','🍜','한식','면류','blank stress','mild','light',1,'메밀 대두',1,'춘천·강원','메밀로 만든 면을 시원한 국물이나 양념장에 비벼 먹는 강원도의 대표 향토 음식이에요.'),
+M('hoedeopbap','회덮밥','🍣','한식','밥류','stress happy','spicy sweet','light full',2,'생선 대두 달걀',1,'전국','신선한 회와 채소를 밥 위에 올려 초고추장에 비벼 먹는 한국식 덮밥이에요. 바닷가 지역에서 특히 사랑받아요.'),
+M('sujebi','수제비','🥣','한식','면류','blue tired','mild salty','light',1,'밀',1,'전국','밀가루 반죽을 손으로 얇게 떼어 넣어 끓이는 음식이에요. 비 오는 날 생각나는 서민적인 밀가루 음식으로 꼽혀요.'),
+M('bossam','보쌈','🥬','한식','고기요리','happy tired','mild salty','special full',2,'돼지고기 갑각류 대두',0,'전국','삶은 돼지고기를 김치와 함께 싸 먹는 음식이에요. 김장하는 날 갓 담근 김치 속에 수육을 싸 먹던 풍습과 이어져 있어요.'),
+M('jjajang','짜장면','🍝','중식','면류','blank blue happy','salty sweet','quick full',1,'밀 대두 돼지고기',1,'인천','인천 차이나타운에서 중국식 춘장 요리가 한국식으로 바뀌며 퍼진 음식으로 알려져 있어요. 졸업식, 이삿날의 외식 메뉴로도 오래 사랑받았어요.'),
+M('jjamppong','짬뽕','🍜','중식','면류','stress tired','spicy salty','full',1,'밀 갑각류 돼지고기',1,'전국','해물과 채소를 넣은 얼큰한 국물 면이에요. 일본 나가사키의 짬뽕에서 영향을 받아 한국식으로 변했다는 이야기가 있어요.'),
+M('tangsuyuk','탕수육','🍖','중식','튀김·치킨','happy blue','sweet','special full',2,'밀 돼지고기',0,'전국','바삭하게 튀긴 고기에 새콤달콤한 소스를 곁들인 요리예요. 소스를 붓느냐 찍느냐 하는 ‘부먹·찍먹’ 논쟁은 한국 음식 문화의 명물이에요.'),
+M('malatang','마라탕','🌶️','중식','국물요리','stress happy','spicy','full special',2,'땅콩 대두',1,'쓰촨','‘마라’는 혀가 얼얼한 마(麻)와 매운 라(辣)가 합쳐진 중국 쓰촨 지역의 맛이에요. 원하는 재료를 골라 국물에 끓여 먹는 방식이 인기예요.'),
+M('friedrice','볶음밥','🍚','중식','밥류','blank tired','salty mild','quick full',1,'달걀 대두',1,'전국','센 불에 재료와 밥을 빠르게 볶아 내는 중식당의 기본 메뉴예요. 은은한 불 맛이 핵심이에요.'),
+M('sushi','초밥','🍣','일식','밥류','happy','mild salty','special light',3,'생선 대두',1,'일본','원래는 생선을 보존하기 위해 밥과 함께 발효시키던 방식에서 출발했어요. 에도 시대에 지금처럼 즉석에서 쥐어 먹는 형태로 자리 잡았어요.'),
+M('donkatsu','돈카츠','🍱','일식','튀김·치킨','happy tired blank','salty sweet','full',2,'밀 돼지고기 달걀',1,'일본','서양의 커틀릿이 일본식으로 바뀌며 생긴 요시쿠(일본식 양식)의 대표 메뉴예요. 한국의 경양식 돈가스로도 이어졌어요.'),
+M('udon','우동','🍜','일식','면류','blue tired blank','mild salty','light quick',1,'밀 생선',1,'일본','굵고 쫄깃한 밀가루 면을 가쓰오부시 육수에 말아 먹는 일본의 대표 면 요리예요. 지방마다 면 굵기와 국물 맛이 달라요.'),
+M('ramen','라멘','🍜','일식','면류','tired stress blank','salty','full',2,'밀 돼지고기 달걀',1,'일본','중국식 면 요리가 일본에서 독자적으로 발전한 음식이에요. 소금, 간장, 된장, 돈코츠 등 국물 종류로 지역색을 나눠요.'),
+M('gyudon','규동','🍚','일식','밥류','blank tired','sweet salty','quick full',1,'소고기 대두',1,'일본','간장 양념에 졸인 소고기와 양파를 밥 위에 올린 덮밥이에요. 빠르게 먹는 일본의 대표 한 그릇 식사예요.'),
+M('omurice','오므라이스','🍳','일식','밥류','blue happy blank','sweet mild','full quick',2,'달걀',1,'일본','오믈렛과 라이스를 합친 이름에서 온, 일본에서 생겨난 서양풍 요리예요. 케첩으로 그림을 그려 주는 재미도 있어요.'),
+M('pasta','파스타','🍝','양식','면류','happy blue','salty mild','special full',2,'밀 우유',1,'이탈리아','이탈리아에서는 소스와 면 모양을 짝지어 먹는 전통이 있어서 파스타 종류가 수백 가지에 이른다고 해요.'),
+M('pizza','피자','🍕','양식','빵·양식','happy blank','salty','full special',2,'밀 우유',1,'이탈리아','이탈리아 나폴리에서 서민 음식으로 시작해 전 세계로 퍼졌어요. 나폴리 피자 장인의 기술은 유네스코 무형문화유산이에요.'),
+M('burger','햄버거','🍔','양식','빵·양식','blank happy stress','salty','quick full',1,'밀 소고기 달걀 우유',1,'미국','빵 사이에 고기 패티를 끼운 음식으로, 미국에서 대중화되어 전 세계 패스트푸드의 상징이 됐어요.'),
+M('salad','샐러드','🥗','양식','샐러드','blank tired happy','mild','light',1,'',1,'세계 각지','신선한 채소에 소스를 곁들인 음식이에요. 이름은 소금을 뜻하는 라틴어 ‘sal’에서 비롯됐다고 해요.'),
+M('sandwich','샌드위치','🥪','양식','빵·양식','blank happy','mild salty','quick light',1,'밀 달걀 우유',1,'영국','18세기 영국의 샌드위치 백작이 카드 게임을 하며 먹기 편하게 빵 사이에 고기를 끼워 먹은 데서 이름이 유래했다고 전해져요.'),
+M('steak','스테이크','🥩','양식','고기요리','happy tired','salty mild','special full',3,'소고기',1,'서양','굽기 정도(레어부터 웰던까지)에 따라 맛이 달라지는, 고기 본연의 맛을 즐기는 서양식 대표 요리예요.'),
+M('pho','쌀국수','🍜','세계요리','면류','tired blue blank','mild salty','light full',2,'소고기 생선',1,'베트남','소고기 뼈를 오래 우린 맑은 국물이 특징인 베트남의 대표 쌀국수예요. 북부 하노이에서 시작됐다고 알려져 있어요.'),
+M('padthai','팟타이','🍝','세계요리','면류','happy blank','sweet salty','full quick',2,'땅콩 갑각류 달걀 생선',1,'태국','태국의 대표 볶음 쌀국수예요. 새콤달콤짭짤한 맛의 균형이 특징이고, 땅콩 가루를 뿌려 먹어요.'),
+M('curry','카레','🍛','세계요리','밥류','blue blank tired','sweet spicy','full quick',1,'밀',1,'인도·일본','인도의 향신료 요리가 영국을 거쳐 일본에 들어와 변형됐고, 그 일본식 카레가 한국 가정식으로 자리 잡았어요.'),
+M('taco','타코','🌮','세계요리','빵·양식','happy blank','spicy salty','special quick',2,'소고기',1,'멕시코','옥수수로 만든 또르띠야에 다양한 재료를 싸 먹는 멕시코 음식이에요. 멕시코의 전통 음식 문화는 유네스코 무형문화유산으로 등재됐어요.'),
+M('bingsu','팥빙수','🍧','분식·간식','간식·디저트','happy blue stress','sweet','light',1,'우유',1,'전국','곱게 간 얼음 위에 팥과 떡 등을 올려 먹는 여름 대표 디저트예요. 요즘은 과일, 치즈 등 다양한 변주가 인기예요.'),
+M('hotteok','호떡','🥞','분식·간식','간식·디저트','blue blank happy','sweet','quick light',1,'밀 땅콩',1,'전국','이름의 ‘호(胡)’는 중국을 가리키는 말이에요. 중국에서 전해진 뒤 흑설탕 소를 넣은 한국식 겨울 간식으로 자리 잡았다고 해요.')
+];
+var MAP={};MENU.forEach(function(m){MAP[m.id]=m;});
+
+/* ---------- 상태 & 저장 ---------- */
+var KEY='todaypick:v1';
+function load(){
+  try{var d=JSON.parse(localStorage.getItem(KEY));
+    if(d&&Array.isArray(d.history))return {history:d.history,allergens:d.allergens||[],dislikes:d.dislikes||[]};
+  }catch(e){}
+  return {history:[],allergens:[],dislikes:[]};
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S.data));}catch(e){}}
+function newPick(){return {step:0,mood:null,tastes:[],sit:null,budget:3,company:'solo',cand:[],idx:0,confirmed:false,empty:false};}
+function defaultName(i){return i===0?'나':'친구 '+i;}
+function newT(){return {phase:'setup',n:3,names:['나','친구 1','친구 2'],turn:0,answers:[],cur:null,cand:[],idx:0,confirmed:false,budget:3,al:[]};}
+var S={tab:'pick',data:load(),pick:newPick(),R:{cat:'전체',budget:3,solo:false,segs:[],pool:0,rot:0,spinning:false,result:null,init:false},T:newT(),clearArm:false};
+var reduceMotion=false;
+try{reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+
+/* ---------- 유틸 ---------- */
+function $(s,r){return (r||document).querySelector(s);}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function lab(arr,id){for(var i=0;i<arr.length;i++)if(arr[i].id===id)return arr[i].label;return '';}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function meal(){var h=new Date().getHours();return h<5?'야식':h<10?'아침':h<15?'점심':h<21?'저녁':'야식';}
+function toast(msg){var t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove('show');},1800);}
+function fmtDate(ts){var d=new Date(ts);return (d.getMonth()+1)+'월 '+d.getDate()+'일';}
+
+function tile(a,id,emoji,label,on){
+  return '<button class="tile" data-a="'+a+'" data-id="'+id+'" aria-pressed="'+(!!on)+'"><span class="te" aria-hidden="true">'+emoji+'</span><span>'+label+'</span></button>';
+}
+function chip(a,id,label,on){
+  return '<button class="chip" data-a="'+a+'" data-id="'+id+'" aria-pressed="'+(!!on)+'">'+label+'</button>';
+}
+
+/* ---------- 추천 엔진 ---------- */
+function exSet(){return {al:new Set(S.data.allergens),dis:new Set(S.data.dislikes)};}
+function excluded(m,ex){return ex.dis.has(m.id)||m.al.some(function(a){return ex.al.has(a);});}
+function recentSet(){var now=Date.now();return new Set(S.data.history.filter(function(x){return now-x.ts<172800000;}).map(function(x){return x.ate;}));}
+function profile(){
+  var h=S.data.history.filter(function(x){return x.ate&&MAP[x.ate];});
+  if(!h.length)return null;
+  var p={total:h.length,cat:{},kind:{},taste:{}};
+  h.forEach(function(x){var m=MAP[x.ate];
+    p.cat[m.cat]=(p.cat[m.cat]||0)+1;p.kind[m.kind]=(p.kind[m.kind]||0)+1;
+    m.tastes.forEach(function(t){p.taste[t]=(p.taste[t]||0)+1;});});
+  return p;
+}
+function scoreMenu(m,pr,prof,recent){
+  var s=0,why=[];
+  if(pr.mood&&m.moods.indexOf(pr.mood)>-1){s+=4;why.push(MOOD_WHY[pr.mood]);}
+  var tm=(pr.tastes||[]).filter(function(t){return m.tastes.indexOf(t)>-1;});
+  if(tm.length){s+=tm.length*3;tm.forEach(function(t){why.push(lab(TASTES,t));});}
+  if(pr.sit&&m.sits.indexOf(pr.sit)>-1){s+=3;why.push(lab(SITS,pr.sit));}
+  if(pr.company==='group'&&!m.solo){s+=1;why.push('함께 먹기 좋아요');}
+  if(prof){
+    var sc=Math.min(1,prof.total/6);
+    var cs=(prof.cat[m.cat]||0)/prof.total,ks=(prof.kind[m.kind]||0)/prof.total;
+    var ts=m.tastes.reduce(function(a,t){return a+(prof.taste[t]||0)/prof.total;},0)/m.tastes.length;
+    var b=sc*1.6*(cs+ks+ts);s+=b;
+    if(b>=1.4)why.push('자주 고른 취향이에요');
+  }
+  if(recent&&recent.has(m.id))s-=3;
+  return {s:s,why:why};
+}
+function addHistory(id,via){
+  S.data.history.push({id:String(Date.now())+Math.random().toString(36).slice(2,6),ts:Date.now(),rec:id,ate:id,via:via});
+  save();
+}
+
+/* ---------- 식권 ---------- */
+function ticket(m,why,stamp){
+  var d=new Date();
+  var mm=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
+  var no=mm+dd+'-'+String(MENU.indexOf(m)+1).padStart(2,'0');
+  var whyHTML=why&&why.length?'<ul class="t-why">'+why.map(function(w){return '<li>'+esc(w)+'</li>';}).join('')+'</ul>':'';
+  return '<article class="ticket" aria-label="'+esc(m.name)+' 추천">'+
+    '<div class="t-head"><span>'+d.getFullYear()+'.'+mm+'.'+dd+' '+meal()+' 식권</span><span>No.'+no+'</span></div>'+
+    '<div class="t-emoji" aria-hidden="true">'+m.emoji+'</div>'+
+    '<div class="t-stamp" aria-hidden="true">'+(stamp||'오늘<br>픽')+'</div>'+
+    '<h2 class="t-name">'+m.name+'</h2>'+
+    '<div class="t-tags"><span class="t-tag">'+m.cat+'</span><span class="t-tag">'+m.kind+'</span><span class="t-tag">'+PRICE[m.price]+'</span></div>'+
+    whyHTML+
+    '<div class="perf"></div>'+
+    '<section class="culture"><h3>음식 문화 한 입</h3><p>'+m.culture+'</p><p class="t-region">📍 '+m.region+'</p></section>'+
+  '</article>';
+}
+var NOTE_ALLERGY='<p class="note">재료 정보는 일반적인 조리법 기준이에요. 알레르기가 있다면 주문 전에 식당에 꼭 확인하세요.</p>';
+
+/* ---------- 탭 1: 추천 ---------- */
+function renderPick(){
+  var p=S.pick;
+  if(p.step===4)return renderResult();
+  var prog='<div class="prog" role="progressbar" aria-label="질문 진행" aria-valuemin="1" aria-valuemax="4" aria-valuenow="'+(p.step+1)+'">'+[0,1,2,3].map(function(i){return '<i class="'+(i<=p.step?'on':'')+'"></i>';}).join('')+'</div>';
+  var back=p.step>0?'<button class="link muted" data-a="back">이전 질문</button>':'';
+  var body='';
+  if(p.step===0){
+    body='<h1 class="h1">지금 기분이 어때요?</h1><p class="sub">기분에 맞는 메뉴부터 골라드려요.</p><div class="grid">'+
+      MOODS.map(function(x){return tile('mood',x.id,x.emoji,x.label,p.mood===x.id);}).join('')+'</div>';
+  }else if(p.step===1){
+    body='<h1 class="h1">어떤 맛이 당겨요?</h1><p class="sub">최대 2개까지 고를 수 있어요.</p><div class="grid">'+
+      TASTES.map(function(x){return tile('taste',x.id,x.emoji,x.label,p.tastes.indexOf(x.id)>-1);}).join('')+'</div>'+
+      '<div class="row2"><button class="btn ghost" data-a="tasteSkip">상관없어요</button><button class="btn primary" data-a="next"'+(p.tastes.length?'':' disabled')+'>다음</button></div>';
+  }else if(p.step===2){
+    body='<h1 class="h1">어떤 식사를 원해요?</h1><p class="sub">오늘 식사의 느낌을 골라주세요.</p><div class="grid">'+
+      SITS.map(function(x){return tile('sit',x.id,x.emoji,x.label,p.sit===x.id);}).join('')+'</div>'+
+      '<div class="stack"><button class="btn ghost" data-a="sitSkip">상관없어요</button></div>';
+  }else{
+    body='<h1 class="h1">예산과 함께 먹는 사람은요?</h1><p class="sub">1인 기준 예산이에요.</p>'+
+      '<p class="lab">예산</p><div class="chips">'+BUDGETS.map(function(b){return chip('budget',b.id,b.label,p.budget===b.id);}).join('')+'</div>'+
+      '<p class="lab">누구와 먹나요?</p><div class="chips">'+chip('company','solo','혼자',p.company==='solo')+chip('company','group','친구·가족과',p.company==='group')+'</div>'+
+      '<div class="stack"><button class="btn primary" data-a="go">메뉴 뽑기</button></div>';
+  }
+  return prog+back+body;
+}
+function genPick(){
+  var p=S.pick,ex=exSet(),prof=profile(),rec=recentSet(),list=[];
+  MENU.forEach(function(m){
+    if(excluded(m,ex)||m.price>p.budget||(p.company==='solo'&&!m.solo))return;
+    var r=scoreMenu(m,p,prof,rec);
+    list.push({m:m,s:r.s+Math.random()*1.5,why:r.why});
+  });
+  list.sort(function(a,b){return b.s-a.s;});
+  p.cand=list.slice(0,8);p.idx=0;p.confirmed=false;p.empty=!list.length;p.step=4;
+}
+function otherChips(cand,idx,action){
+  var o=[];cand.forEach(function(x,i){if(i!==idx)o.push({x:x,i:i});});
+  o=o.slice(0,4);
+  if(!o.length)return '';
+  return '<p class="lab">이런 메뉴는 어때요?</p><div class="chips">'+o.map(function(q){return '<button class="chip" data-a="'+action+'" data-id="'+q.i+'">'+q.x.m.emoji+' '+q.x.m.name+'</button>';}).join('')+'</div>';
+}
+function emptyResult(restartAct){
+  return '<h1 class="h1">조건에 맞는 메뉴가 없어요</h1><p class="sub">예산을 넓히거나 ‘추천에서 빼기’ 설정을 확인해보세요.</p>'+
+    '<div class="stack"><button class="btn primary" data-a="'+restartAct+'">조건 다시 고르기</button><button class="btn ghost" data-a="goExcl">제외 조건 확인하기</button></div>';
+}
+function renderResult(){
+  var p=S.pick;
+  if(p.empty)return emptyResult('restart');
+  var c=p.cand[p.idx];
+  return '<button class="link muted" data-a="restart">조건 다시 고르기</button>'+ticket(c.m,c.why)+
+    '<div class="stack"><button class="btn primary" data-a="confirm"'+(p.confirmed?' disabled':'')+'>'+(p.confirmed?'내 픽에 기록했어요':'이걸로 정했어요')+'</button>'+
+    (p.cand.length>1?'<button class="btn ghost" data-a="another">다른 메뉴 볼래요</button>':'')+'</div>'+
+    otherChips(p.cand,p.idx,'jump')+NOTE_ALLERGY;
+}
+
+/* ---------- 탭 2: 룰렛 ---------- */
+var WHEEL_COLORS=[{bg:'#D8321F',fg:'#fff'},{bg:'#FFC93C',fg:'#14213D'},{bg:'#217A4D',fg:'#fff'},{bg:'#F4F6FB',fg:'#14213D'},{bg:'#2F4A82',fg:'#fff'}];
+function wheelColor(i,n){
+  var c=i%5;
+  if(i===n-1&&n>1&&c===0)c=2;
+  if(i===n-1&&n>2&&c===(i-1)%5)c=(c+1)%5;
+  return WHEEL_COLORS[c];
+}
+function pool(){
+  var R=S.R,ex=exSet();
+  return MENU.filter(function(m){return !excluded(m,ex)&&m.price<=R.budget&&(!R.solo||m.solo)&&(R.cat==='전체'||m.cat===R.cat);});
+}
+function reshuffle(){
+  var R=S.R,pl=pool();
+  R.pool=pl.length;R.segs=shuffle(pl).slice(0,8);R.rot=0;R.result=null;R.init=true;
+}
+function wheelSVG(segs){
+  var n=segs.length,a=360/n,cx=150,cy=150,r=142,out='';
+  segs.forEach(function(m,i){
+    var c=wheelColor(i,n);
+    var t1=(i*a-a/2)*Math.PI/180,t2=(i*a+a/2)*Math.PI/180;
+    var x1=cx+r*Math.sin(t1),y1=cy-r*Math.cos(t1),x2=cx+r*Math.sin(t2),y2=cy-r*Math.cos(t2);
+    out+='<path d="M'+cx+' '+cy+'L'+x1.toFixed(2)+' '+y1.toFixed(2)+'A'+r+' '+r+' 0 '+(a>180?1:0)+' 1 '+x2.toFixed(2)+' '+y2.toFixed(2)+'Z" fill="'+c.bg+'" stroke="#14213D" stroke-width="2"/>';
+    out+='<g transform="rotate('+(i*a)+' '+cx+' '+cy+')"><text x="'+cx+'" y="'+(cy-36)+'" transform="rotate(-90 '+cx+' '+(cy-36)+')" fill="'+c.fg+'" font-size="'+(n>6?13:15)+'" font-weight="800" dominant-baseline="middle">'+m.emoji+' '+m.name+'</text></g>';
+  });
+  out+='<circle cx="150" cy="150" r="144" fill="none" stroke="#14213D" stroke-width="5"/>';
+  return '<svg id="wheelSvg" viewBox="0 0 300 300" role="img" aria-label="룰렛 후보: '+segs.map(function(m){return m.name;}).join(', ')+'" style="transform:rotate('+S.R.rot+'deg)">'+out+'</svg>';
+}
+function rresHTML(){
+  var R=S.R;if(!R.result)return '';
+  var m=R.result.m;
+  return ticket(m,['룰렛이 골랐어요'],'당첨')+
+    '<div class="stack"><button class="btn primary" data-a="rconfirm"'+(R.result.confirmed?' disabled':'')+'>'+(R.result.confirmed?'내 픽에 기록했어요':'이걸로 정했어요')+'</button><button class="btn ghost" data-a="spin">다시 돌리기</button></div>'+NOTE_ALLERY_SAFE();
+}
+function NOTE_ALLERY_SAFE(){return NOTE_ALLERGY;}
+function renderRoulette(){
+  var R=S.R;
+  if(!R.init)reshuffle();
+  var exN=S.data.allergens.length+S.data.dislikes.length;
+  var enough=R.segs.length>=2;
+  var wheel=enough?
+    '<div class="wheel-wrap"><div class="pointer" aria-hidden="true"></div>'+wheelSVG(R.segs)+'<button class="hub" id="hub" data-a="spin" aria-label="룰렛 돌리기"'+(R.spinning?' disabled':'')+'>돌려!</button></div>'+
+    '<p class="sub" style="text-align:center">후보 '+R.pool+'개 중 '+R.segs.length+'개로 돌려요</p>'+
+    (R.pool>R.segs.length?'<div style="text-align:center"><button class="link" data-a="reshuffle">후보 다시 섞기</button></div>':''):
+    '<div class="panel empty"><div class="big" aria-hidden="true">🫥</div><p>조건에 맞는 메뉴가 2개보다 적어요.<br>아래에서 조건을 넓혀보세요.</p></div>';
+  var filters='<p class="lab">음식 종류</p><div class="chips">'+['전체'].concat(CATS).map(function(c){return chip('rcat',c,c,R.cat===c);}).join('')+'</div>'+
+    '<p class="lab">예산</p><div class="chips">'+BUDGETS.map(function(b){return chip('rbudget',b.id,b.label,R.budget===b.id);}).join('')+'</div>'+
+    '<p class="lab">먹는 방식</p><div class="chips">'+chip('rsolo','solo','혼자 먹기 좋은 메뉴만',R.solo)+'</div>'+
+    '<p class="note">'+(exN?'못 먹는 재료와 싫어하는 음식 '+exN+'개를 빼고 돌려요. ':'빼고 싶은 음식이 있다면 ')+'<button class="link" data-a="goExcl" style="padding:0;min-height:0">'+(exN?'바꾸기':'내 픽에서 설정하기')+'</button></p>';
+  return '<h1 class="h1">오늘의 메뉴 룰렛</h1><p class="sub">고르기 귀찮을 땐 돌려서 정해요.</p>'+wheel+'<div id="rres" aria-live="polite">'+rresHTML()+'</div>'+filters;
+}
+function spin(){
+  var R=S.R;
+  if(R.spinning||R.segs.length<2)return;
+  R.spinning=true;R.result=null;
+  var box=$('#rres');if(box)box.innerHTML='';
+  var hub=$('#hub');if(hub)hub.disabled=true;
+  var n=R.segs.length,a=360/n,w=Math.floor(Math.random()*n);
+  var jitter=(Math.random()-0.5)*a*0.7;
+  var delta=(((-w*a-R.rot+jitter)%360)+360)%360;
+  var target=R.rot+360*5+delta;
+  R.rot=target;
+  var svg=$('#wheelSvg'),dur=reduceMotion?600:4200;
+  if(svg){
+    svg.style.transition='transform '+dur+'ms '+(reduceMotion?'ease-out':'cubic-bezier(.12,.72,.12,1)');
+    svg.style.transform='rotate('+target+'deg)';
+  }
+  setTimeout(function(){
+    R.spinning=false;R.result={m:R.segs[w],confirmed:false};
+    var b=$('#rres'),h=$('#hub');
+    if(h)h.disabled=false;
+    if(b){b.innerHTML=rresHTML();b.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'});}
+  },dur+90);
+}
+
+/* ---------- 탭 3: 함께 ---------- */
+function renderTogether(){
+  var T=S.T;
+  if(T.phase==='setup')return renderSetup();
+  if(T.phase==='turn')return renderTurn();
+  return renderTResult();
+}
+function renderSetup(){
+  var T=S.T;
+  return '<h1 class="h1">친구와 함께 고르기</h1><p class="sub">화면 하나를 돌려가며 각자 조건을 고르면, 모두가 만족할 메뉴를 찾아줘요.</p>'+
+    '<div class="panel"><div class="stepper"><span>함께하는 사람</span><div class="step-ctl"><button class="round" data-a="tdec" aria-label="한 명 줄이기"'+(T.n<=2?' disabled':'')+'>−</button><output aria-live="polite"><b>'+T.n+'</b>명</output><button class="round" data-a="tinc" aria-label="한 명 늘리기"'+(T.n>=6?' disabled':'')+'>+</button></div></div>'+
+    '<div class="names">'+T.names.map(function(nm,i){return '<label class="name"><span>'+(i+1)+'번</span><input type="text" maxlength="8" value="'+esc(nm)+'" data-name="'+i+'" aria-label="'+(i+1)+'번 사람 이름"></label>';}).join('')+'</div></div>'+
+    '<div class="stack"><button class="btn primary" data-a="tstart">시작하기</button></div>'+
+    '<p class="note">각자 차례에 다른 사람이 화면을 보지 않도록 해주세요. 모두의 조건이 겹치는 메뉴를 먼저 보여드려요.</p>';
+}
+function startTurn(i){S.T.cur={mood:null,tastes:[],sit:null,budget:3,al:i===0?S.data.allergens.slice():[]};}
+function renderTurn(){
+  var T=S.T,i=T.turn,c=T.cur,last=i===T.n-1;
+  var nm=esc((T.names[i]||'').trim()||defaultName(i));
+  var prog='<div class="prog" role="progressbar" aria-label="진행" aria-valuemin="1" aria-valuemax="'+T.n+'" aria-valuenow="'+(i+1)+'">'+T.names.map(function(_,k){return '<i class="'+(k<=i?'on':'')+'"></i>';}).join('')+'</div>';
+  return prog+'<h1 class="h1">'+nm+'님 차례예요</h1><p class="sub">다른 친구는 화면을 보지 않게 해주세요.</p>'+
+    '<p class="lab">지금 기분</p><div class="chips">'+MOODS.map(function(x){return chip('tm',x.id,x.emoji+' '+x.label,c.mood===x.id);}).join('')+'</div>'+
+    '<p class="lab">먹고 싶은 맛 (최대 2개)</p><div class="chips">'+TASTES.map(function(x){return chip('tt',x.id,x.emoji+' '+x.label,c.tastes.indexOf(x.id)>-1);}).join('')+'</div>'+
+    '<p class="lab">식사 느낌</p><div class="chips">'+SITS.map(function(x){return chip('ts',x.id,x.emoji+' '+x.label,c.sit===x.id);}).join('')+'</div>'+
+    '<p class="lab">예산</p><div class="chips">'+BUDGETS.map(function(b){return chip('tb',b.id,b.label,c.budget===b.id);}).join('')+'</div>'+
+    '<p class="lab">못 먹는 재료</p><div class="chips">'+ALLERGENS.map(function(a){return chip('ta',a,a,c.al.indexOf(a)>-1);}).join('')+'</div>'+
+    '<div class="stack"><button class="btn primary" data-a="tnext">'+(last?'결과 보기':'다음 사람에게 넘기기')+'</button></div>';
+}
+function computeTogether(){
+  var T=S.T,ps=T.answers,n=ps.length;
+  var budget=Math.min.apply(null,ps.map(function(p){return p.budget;}));
+  var alSet=new Set();ps.forEach(function(p){p.al.forEach(function(a){alSet.add(a);});});
+  var ex={al:alSet,dis:new Set(S.data.dislikes)};
+  var votes={};ps.forEach(function(p){p.tastes.forEach(function(t){votes[t]=(votes[t]||0)+1;});});
+  var list=[];
+  MENU.forEach(function(m){
+    if(excluded(m,ex)||m.price>budget)return;
+    var per=ps.map(function(p){
+      var r=scoreMenu(m,{mood:p.mood,tastes:p.tastes,sit:p.sit},null,null);
+      var none=!p.mood&&!p.tastes.length&&!p.sit;
+      return {s:r.s,ok:none||r.s>0};
+    });
+    var sat=per.filter(function(x){return x.ok;}).length;
+    var total=per.reduce(function(a,x){return a+x.s;},0)+sat*2+(n>=3&&!m.solo?1:0)+Math.random()*1.2;
+    var why=[sat+'/'+n+'명이 만족해요'];
+    m.tastes.forEach(function(t){if(votes[t])why.push(lab(TASTES,t)+' '+votes[t]+'표');});
+    list.push({m:m,s:total,sat:sat,per:per,why:why});
+  });
+  list.sort(function(a,b){return b.s-a.s;});
+  T.cand=list.slice(0,6);T.idx=0;T.confirmed=false;T.budget=budget;T.al=Array.from(alSet);T.votes=votes;
+}
+function renderTResult(){
+  var T=S.T;
+  if(!T.cand.length)return emptyResult('trestart');
+  var c=T.cand[T.idx],n=T.answers.length;
+  var sat='<div class="sat-row" aria-label="사람별 만족 여부">'+T.answers.map(function(p,i){return '<span class="sat'+(c.per[i].ok?' ok':'')+'">'+(c.per[i].ok?'✓':'△')+' '+esc((p.name||'').trim()||defaultName(i))+'</span>';}).join('')+'</div>';
+  var rows=TASTES.filter(function(t){return T.votes[t.id];}).map(function(t){
+    var v=T.votes[t.id],pc=Math.round(v/n*100);
+    return '<div class="bar-row"><span>'+t.emoji+' '+t.label+'</span><div class="track"><div class="fill" style="width:'+pc+'%"></div></div><span class="pct">'+v+'명</span></div>';
+  }).join('');
+  var moods=T.answers.filter(function(p){return p.mood;}).map(function(p){var x=MOODS.filter(function(m){return m.id===p.mood;})[0];return '<span class="chip" style="min-height:34px;font-size:14px">'+x.emoji+' '+esc((p.name||'').trim()||'')+'</span>';}).join('');
+  var analysis='<section class="panel"><h2 class="h2">모두의 조건</h2>'+
+    (rows||'<p class="sub">맛 조건을 고른 사람이 없어요.</p>')+
+    (moods?'<p class="lab">오늘 기분</p><div class="chips">'+moods+'</div>':'')+
+    '<p class="lab">예산</p><p class="sub">가장 낮은 기준인 ‘'+lab(BUDGETS,T.budget)+'’에 맞췄어요.</p>'+
+    '<p class="lab">빼고 찾은 재료</p><p class="sub">'+(T.al.length?T.al.join(', '):'없어요')+'</p></section>';
+  return '<button class="link muted" data-a="trestart">처음부터 다시</button>'+ticket(c.m,c.why)+sat+
+    '<div class="stack"><button class="btn primary" data-a="tconfirm"'+(T.confirmed?' disabled':'')+'>'+(T.confirmed?'내 픽에 기록했어요':'이걸로 정했어요')+'</button>'+
+    (T.cand.length>1?'<button class="btn ghost" data-a="tanother">다른 메뉴 볼래요</button>':'')+'</div>'+
+    analysis+otherChips(T.cand,T.idx,'tjump')+NOTE_ALLERGY;
+}
+
+/* ---------- 탭 4: 내 픽 ---------- */
+function top(o){var e=Object.keys(o).map(function(k){return [k,o[k]];}).sort(function(a,b){return b[1]-a[1];});return e[0]||[];}
+function tasteHTML(prof){
+  var rows=TASTES.map(function(t){var v=Math.round((prof.taste[t.id]||0)/prof.total*100);
+    return '<div class="bar-row"><span>'+t.emoji+' '+t.label+'</span><div class="track"><div class="fill" style="width:'+v+'%"></div></div><span class="pct">'+v+'%</span></div>';}).join('');
+  var tags=[];
+  var t=top(prof.taste),c=top(prof.cat),k=top(prof.kind);
+  if(prof.total>=2){
+    if(t[0]&&t[1]/prof.total>=0.5)tags.push(lab(TASTES,t[0])+' 선호도 높음');
+    if(c[0]&&c[1]/prof.total>=0.5)tags.push(c[0]+' 선호');
+    if(k[0]&&k[1]/prof.total>=0.4)tags.push(k[0]+' 자주 선택');
+  }
+  var tagHTML=prof.total<2?'<p class="sub">기록이 2개 이상 쌓이면 취향 태그가 생겨요.</p>':
+    (tags.length?'<ul class="tags">'+tags.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>':'<p class="sub">아직 뚜렷한 취향이 없어요. 다양하게 먹어보는 중이네요.</p>');
+  return tagHTML+rows+'<p class="note" style="margin-top:12px">먹은 메뉴 '+prof.total+'개를 추천에 반영하고 있어요. 비율은 먹은 메뉴 중 해당 맛이 들어간 메뉴의 비중이에요.</p>';
+}
+function renderMe(){
+  var d=S.data,prof=profile();
+  var h='<h1 class="h1">내 픽</h1><p class="sub">먹은 기록이 쌓일수록 추천이 내 입맛에 가까워져요.</p>';
+  h+='<section class="panel"><h2 class="h2">내 입맛</h2>'+(prof?tasteHTML(prof):
+    '<div class="empty"><div class="big" aria-hidden="true">🍽️</div><p>아직 기록이 없어요.<br>메뉴를 추천받고 ‘이걸로 정했어요’를 눌러보세요.</p></div><div class="stack" style="margin-top:8px"><button class="btn primary" data-a="tab" data-id="pick">메뉴 추천받기</button></div>')+'</section>';
+  h+='<section class="panel" id="excl"><h2 class="h2">추천에서 빼기</h2>'+
+    '<p class="lab" style="margin-top:0">못 먹는 재료</p><div class="chips">'+ALLERGENS.map(function(a){return chip('al',a,a,d.allergens.indexOf(a)>-1);}).join('')+'</div>'+
+    '<p class="lab">싫어하는 음식</p><div class="chips">'+d.dislikes.filter(function(id){return MAP[id];}).map(function(id){return '<button class="chip" data-a="undis" data-id="'+id+'" aria-label="'+MAP[id].name+' 빼기 해제">'+MAP[id].emoji+' '+MAP[id].name+' ×</button>';}).join('')+
+    '<button class="chip" data-a="adddis" aria-pressed="false">+ 추가</button></div>'+
+    '<p class="note">여기서 고른 조건은 추천, 룰렛, 함께 고르기에 모두 반영돼요.</p></section>';
+  var list=d.history.slice().sort(function(a,b){return b.ts-a.ts;}).slice(0,30);
+  h+='<section class="panel"><h2 class="h2">먹은 기록</h2>';
+  if(!list.length){
+    h+='<p class="sub">아직 기록이 없어요.</p>';
+  }else{
+    h+='<ul class="hlist">'+list.map(function(x){
+      var m=MAP[x.ate];if(!m)return '';
+      var diff=x.rec&&x.rec!==x.ate&&MAP[x.rec]?'<small>추천받은 메뉴: '+MAP[x.rec].name+'</small>':'';
+      return '<li class="hrow"><span class="he" aria-hidden="true">'+m.emoji+'</span><div class="hbody"><b>'+m.name+'</b><span><small>'+fmtDate(x.ts)+'</small><span class="via">'+esc(x.via)+'</span></span>'+diff+'</div>'+
+        '<div class="hact"><button class="link" data-a="hedit" data-id="'+x.id+'">먹은 메뉴 바꾸기</button><button class="link muted" data-a="hdel" data-id="'+x.id+'">삭제</button></div></li>';
+    }).join('')+'</ul>';
+  }
+  h+='<div class="stack"><button class="btn ghost" data-a="hadd">직접 기록하기</button></div></section>';
+  h+='<div style="text-align:center;margin-top:14px"><button class="link muted" data-a="clear">'+(S.clearArm?'정말 지울까요? 한 번 더 누르면 모두 삭제돼요':'기록과 설정 모두 지우기')+'</button></div>';
+  return h;
+}
+
+/* ---------- 바텀시트 ---------- */
+var sheetCb=null;
+function openSheet(title,cb){
+  closeSheet();
+  var el=document.createElement('div');el.className='overlay';el.id='sheet';
+  el.innerHTML='<div class="sheet" role="dialog" aria-modal="true" aria-label="'+title+'"><div class="sh-head"><span>'+title+'</span><button class="link" data-a="sclose">닫기</button></div>'+
+    '<input class="search" type="search" placeholder="메뉴 이름 검색" aria-label="메뉴 이름 검색">'+
+    '<ul class="sh-list">'+MENU.map(function(m){return '<li data-n="'+m.name+'"><button class="sh-item" data-a="spick" data-id="'+m.id+'"><span aria-hidden="true">'+m.emoji+'</span><span>'+m.name+'</span><small>'+m.cat+'</small></button></li>';}).join('')+'</ul></div>';
+  el.addEventListener('click',function(e){if(e.target===el)closeSheet();});
+  document.body.appendChild(el);
+  sheetCb=cb;
+  $('.search',el).addEventListener('input',function(e){
+    var q=e.target.value.trim();
+    el.querySelectorAll('li').forEach(function(li){li.hidden=q&&li.dataset.n.indexOf(q)===-1;});
+  });
+}
+function closeSheet(){var el=$('#sheet');if(el)el.remove();sheetCb=null;}
+
+/* ---------- 렌더 ---------- */
+function render(keep){
+  var main=$('#main'),sc=main.scrollTop,html='';
+  if(S.tab==='pick')html=renderPick();
+  else if(S.tab==='wheel')html=renderRoulette();
+  else if(S.tab==='together')html=renderTogether();
+  else html=renderMe();
+  main.innerHTML=html;
+  main.scrollTop=keep?sc:0;
+  document.querySelectorAll('.tab').forEach(function(b){b.setAttribute('aria-current',b.dataset.id===S.tab?'page':'false');});
+}
+function setTab(t){S.tab=t;render(false);}
+function toggleIn(arr,v){var i=arr.indexOf(v);if(i>-1)arr.splice(i,1);else arr.push(v);}
+function pushTaste(arr,id){var i=arr.indexOf(id);if(i>-1)arr.splice(i,1);else{if(arr.length>=2)arr.shift();arr.push(id);}}
+function advance(from){setTimeout(function(){if(S.tab==='pick'&&S.pick.step===from){S.pick.step=from+1;render(false);}},170);}
+
+/* ---------- 이벤트 ---------- */
+var H={
+  tab:function(id){setTab(id);},
+  goExcl:function(){S.tab='me';render(false);var e=$('#excl');if(e)e.scrollIntoView({block:'start'});},
+  /* 추천 */
+  mood:function(id){S.pick.mood=id;render(true);advance(0);},
+  taste:function(id){pushTaste(S.pick.tastes,id);render(true);},
+  tasteSkip:function(){S.pick.tastes=[];S.pick.step=2;render(false);},
+  sit:function(id){S.pick.sit=id;render(true);advance(2);},
+  sitSkip:function(){S.pick.sit=null;S.pick.step=3;render(false);},
+  next:function(){S.pick.step++;render(false);},
+  back:function(){S.pick.step=Math.max(0,S.pick.step-1);render(false);},
+  budget:function(id){S.pick.budget=+id;render(true);},
+  company:function(id){S.pick.company=id;render(true);},
+  go:function(){genPick();render(false);},
+  restart:function(){S.pick=newPick();render(false);},
+  another:function(){var p=S.pick;p.idx=(p.idx+1)%p.cand.length;p.confirmed=false;render(false);},
+  jump:function(id){var p=S.pick;p.idx=+id;p.confirmed=false;render(false);},
+  confirm:function(){var p=S.pick;if(p.confirmed)return;addHistory(p.cand[p.idx].m.id,'추천');p.confirmed=true;render(true);toast('내 픽에 기록했어요');},
+  /* 룰렛 */
+  spin:function(){spin();},
+  reshuffle:function(){reshuffle();render(true);},
+  rcat:function(id){S.R.cat=id;reshuffle();render(true);},
+  rbudget:function(id){S.R.budget=+id;reshuffle();render(true);},
+  rsolo:function(){S.R.solo=!S.R.solo;reshuffle();render(true);},
+  rconfirm:function(){var R=S.R;if(!R.result||R.result.confirmed)return;addHistory(R.result.m.id,'룰렛');R.result.confirmed=true;var b=$('#rres');if(b)b.innerHTML=rresHTML();toast('내 픽에 기록했어요');},
+  /* 함께 */
+  tdec:function(){setN(S.T.n-1);render(true);},
+  tinc:function(){setN(S.T.n+1);render(true);},
+  tstart:function(){var T=S.T;T.names=T.names.map(function(n,i){return (n||'').trim()||defaultName(i);});T.answers=[];T.turn=0;startTurn(0);T.phase='turn';render(false);},
+  tm:function(id){var c=S.T.cur;c.mood=c.mood===id?null:id;render(true);},
+  tt:function(id){pushTaste(S.T.cur.tastes,id);render(true);},
+  ts:function(id){var c=S.T.cur;c.sit=c.sit===id?null:id;render(true);},
+  tb:function(id){S.T.cur.budget=+id;render(true);},
+  ta:function(id){toggleIn(S.T.cur.al,id);render(true);},
+  tnext:function(){
+    var T=S.T,c=T.cur;
+    T.answers.push({name:T.names[T.turn],mood:c.mood,tastes:c.tastes.slice(),sit:c.sit,budget:c.budget,al:c.al.slice()});
+    if(T.turn>=T.n-1){computeTogether();T.phase='result';}
+    else{T.turn++;startTurn(T.turn);}
+    render(false);
+  },
+  tanother:function(){var T=S.T;T.idx=(T.idx+1)%T.cand.length;T.confirmed=false;render(false);},
+  tjump:function(id){var T=S.T;T.idx=+id;T.confirmed=false;render(false);},
+  tconfirm:function(){var T=S.T;if(T.confirmed)return;addHistory(T.cand[T.idx].m.id,'함께');T.confirmed=true;render(true);toast('내 픽에 기록했어요');},
+  trestart:function(){var T=S.T;S.T=newT();S.T.n=T.n;S.T.names=T.names;render(false);},
+  /* 내 픽 */
+  al:function(id){toggleIn(S.data.allergens,id);save();render(true);},
+  undis:function(id){toggleIn(S.data.dislikes,id);save();render(true);},
+  adddis:function(){openSheet('싫어하는 음식 추가',function(id){if(S.data.dislikes.indexOf(id)===-1)S.data.dislikes.push(id);save();render(true);toast(MAP[id].name+' 빼고 추천할게요');});},
+  hadd:function(){openSheet('오늘 먹은 메뉴',function(id){S.data.history.push({id:String(Date.now())+Math.random().toString(36).slice(2,6),ts:Date.now(),rec:null,ate:id,via:'직접'});save();render(true);toast('기록했어요');});},
+  hedit:function(id){openSheet('실제로 먹은 메뉴',function(mid){S.data.history.forEach(function(x){if(x.id===id)x.ate=mid;});save();render(true);toast('먹은 메뉴를 바꿨어요');});},
+  hdel:function(id){S.data.history=S.data.history.filter(function(x){return x.id!==id;});save();render(true);toast('기록을 지웠어요');},
+  clear:function(){
+    if(!S.clearArm){S.clearArm=true;render(true);setTimeout(function(){if(S.clearArm){S.clearArm=false;if(S.tab==='me')render(true);}},4000);return;}
+    S.clearArm=false;S.data={history:[],allergens:[],dislikes:[]};save();render(true);toast('모두 지웠어요');
+  },
+  /* 시트 */
+  sclose:function(){closeSheet();},
+  spick:function(id){var cb=sheetCb;closeSheet();if(cb)cb(id);}
+};
+function setN(n){
+  var T=S.T;n=Math.max(2,Math.min(6,n));T.n=n;
+  var names=[];for(var i=0;i<n;i++)names.push(T.names[i]||defaultName(i));T.names=names;
+}
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-a]');if(!b)return;
+  var f=H[b.dataset.a];if(f)f(b.dataset.id,b);
+});
+document.addEventListener('input',function(e){
+  var t=e.target;
+  if(t.matches&&t.matches('[data-name]'))S.T.names[+t.dataset.name]=t.value;
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeSheet();});
+
+var wd=['일','월','화','수','목','금','토'],now=new Date();
+$('#today').textContent=(now.getMonth()+1)+'월 '+now.getDate()+'일 '+wd[now.getDay()]+'요일';
+render(false);
+})();
+</script>
+</body>
+</html>
